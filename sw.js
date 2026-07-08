@@ -1,13 +1,13 @@
-const CACHE_NAME = 'shunt-calc-v1';
+const CACHE_NAME = 'gap-ratio-v2';
 const ASSETS = [
     '/',
     '/index.html',
+    '/app.html',
     '/manifest.json',
     '/icons/icon-192.png',
     '/icons/icon-512.png'
 ];
 
-// 安装：缓存所有资源
 self.addEventListener('install', (e) => {
     e.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
@@ -17,7 +17,6 @@ self.addEventListener('install', (e) => {
     self.skipWaiting();
 });
 
-// 激活：清理旧缓存
 self.addEventListener('activate', (e) => {
     e.waitUntil(
         caches.keys().then((keys) => {
@@ -29,12 +28,10 @@ self.addEventListener('activate', (e) => {
     self.clients.claim();
 });
 
-// 请求：优先缓存，后备网络
 self.addEventListener('fetch', (e) => {
     e.respondWith(
         caches.match(e.request).then((cached) => {
             return cached || fetch(e.request).then((response) => {
-                // 缓存新资源
                 if (response.status === 200) {
                     const clone = response.clone();
                     caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
@@ -42,7 +39,6 @@ self.addEventListener('fetch', (e) => {
                 return response;
             });
         }).catch(() => {
-            // 离线后备
             if (e.request.destination === 'document') {
                 return caches.match('/index.html');
             }

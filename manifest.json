@@ -1,12 +1,12 @@
 {
-    "name": "肺内分流计算器",
-    "short_name": "分流计算",
-    "description": "肺内分流比值医学公式计算器 - 输入血气分析参数，自动计算分流比值",
+    "name": "云阜SICU",
+    "short_name": "云阜SICU",
+    "description": "云阜SICU - Gap Ratio 临床计算器 - A型/B型乳酸升高鉴别诊断",
     "start_url": "./index.html",
     "display": "standalone",
     "orientation": "portrait",
-    "background_color": "#0c1220",
-    "theme_color": "#3ec6e0",
+    "background_color": "#080c14",
+    "theme_color": "#080c14",
     "lang": "zh-CN",
     "categories": ["medical", "health", "utilities"],
     "icons": [

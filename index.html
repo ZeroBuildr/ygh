@@ -5,771 +5,376 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#3ec6e0">
-    <meta name="description" content="Gap Ratio 计算器 - A型/B型乳酸升高鉴别">
+    <meta name="theme-color" content="#080c14">
+    <meta name="description" content="云阜SICU - Gap Ratio 临床计算器">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="icon" href="icons/icon-192.png">
-    <title>Gap Ratio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>云阜SICU</title>
     <style>
         :root {
-            --bg: #0c1220;
-            --bg-card: #151e30;
-            --bg-input: #1b2640;
-            --border: #263350;
-            --text: #e8edf5;
-            --text-sub: #8899b5;
-            --text-dim: #576380;
-            --accent: #3ec6e0;
-            --accent2: #a78bfa;
-            --red: #f87171;
-            --blue: #60a5fa;
-            --green: #4ade80;
-            --yellow: #fbbf24;
+            --bg: #080c14;
+            --bg-elevated: #0d111c;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-tertiary: #64748b;
+            --accent: #0ea5e9;
+            --accent-glow: rgba(14, 165, 233, 0.2);
             --danger: #ef4444;
-            --orange: #fb923c;
-            --radius: 16px;
+            --success: #10b981;
+            --radius-lg: 24px;
+            --font-display: 'Space Grotesk', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-serif: 'Noto Serif SC', serif;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html { font-size: 16px; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Noto Sans SC", "Helvetica Neue", sans-serif;
+            font-family: var(--font-display);
             background: var(--bg);
-            color: var(--text);
+            color: var(--text-primary);
             min-height: 100dvh;
-            padding-bottom: env(safe-area-inset-bottom);
-            overflow-x: hidden;
+            overflow: hidden;
             -webkit-font-smoothing: antialiased;
         }
 
-        body::before {
-            content: '';
+        /* ===== BACKGROUND ===== */
+        .bg-layer {
             position: fixed;
-            top: -120px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 500px;
-            height: 350px;
-            background: radial-gradient(ellipse, rgba(62, 198, 224, 0.12) 0%, transparent 70%);
-            pointer-events: none;
+            inset: 0;
             z-index: 0;
+            background:
+                radial-gradient(ellipse 700px 500px at 20% 30%, rgba(14, 165, 233, 0.05) 0%, transparent 70%),
+                radial-gradient(ellipse 500px 400px at 80% 70%, rgba(16, 185, 129, 0.03) 0%, transparent 70%);
         }
 
-        .app {
-            position: relative;
+        .grid-lines {
+            position: fixed;
+            inset: 0;
             z-index: 1;
-            max-width: 420px;
-            margin: 0 auto;
-            padding: 0 16px;
+            opacity: 0.04;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
+            background-size: 80px 80px;
+            pointer-events: none;
         }
 
-        .topbar {
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0.018;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* ===== SPLASH SCREEN ===== */
+        .splash {
+            position: relative;
+            z-index: 10;
+            min-height: 100dvh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 16px 0 12px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background: linear-gradient(var(--bg) 60%, transparent);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            padding: 40px 28px;
+            max-width: 480px;
+            margin: 0 auto;
         }
 
-        .topbar-title {
-            font-size: 1.05rem;
+        /* Hospital Badge */
+        .hospital-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: rgba(14, 165, 233, 0.06);
+            border: 1px solid rgba(14, 165, 233, 0.1);
+            border-radius: 100px;
+            font-size: 0.68rem;
             font-weight: 600;
-            letter-spacing: 0.5px;
-            color: var(--text);
-        }
-
-        /* ===== 结果区域 ===== */
-        .result-sticky {
-            position: sticky;
-            top: 52px;
-            z-index: 99;
-            margin-bottom: 16px;
-        }
-
-        .result-card {
-            background: linear-gradient(135deg, #1a2a44, #1e2d4a);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .result-card.pulse { animation: cardPulse 0.5s ease; }
-
-        @keyframes cardPulse {
-            0% { transform: scale(1); }
-            40% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-
-        .result-label {
-            font-size: 0.75rem;
-            color: var(--text-dim);
+            letter-spacing: 0.2em;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 8px;
+            color: var(--accent);
+            margin-bottom: 36px;
+            opacity: 0;
+            transform: translateY(16px);
+            animation: revealUp 0.8s cubic-bezier(0.32, 0.72, 0, 1) 0.2s forwards;
         }
 
-        .result-number {
+        .hospital-badge .cross {
+            font-size: 0.8rem;
+        }
+
+        /* Main Title */
+        .title-block {
+            text-align: center;
+            margin-bottom: 12px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: revealUp 0.9s cubic-bezier(0.32, 0.72, 0, 1) 0.4s forwards;
+        }
+
+        .title-main {
+            font-family: var(--font-serif);
             font-size: 2.8rem;
             font-weight: 700;
-            letter-spacing: -1px;
-            line-height: 1.1;
-            background: linear-gradient(135deg, var(--accent), var(--green));
+            letter-spacing: 0.08em;
+            line-height: 1.2;
+            color: var(--text-primary);
+            background: linear-gradient(135deg, #f1f5f9, #94a3b8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
-        .result-tag {
-            display: inline-block;
-            margin-top: 8px;
-            padding: 5px 14px;
-            border-radius: 20px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            background: rgba(255,255,255,0.05);
-            color: var(--text-dim);
-            transition: all 0.3s;
-        }
-
-        .result-tag.type-a { background: rgba(239,68,68,0.15); color: var(--danger); }
-        .result-tag.type-b { background: rgba(96,165,250,0.15); color: var(--blue); }
-        .result-tag.warning { background: rgba(251,191,36,0.12); color: var(--yellow); }
-        .result-tag.error { background: rgba(239,68,68,0.12); color: var(--danger); }
-
-        .result-breakdown {
-            display: flex;
-            justify-content: center;
-            gap: 24px;
-            margin-top: 14px;
-            padding-top: 14px;
-            border-top: 1px solid rgba(255,255,255,0.06);
-        }
-
-        .breakdown-item { text-align: center; }
-        .breakdown-label { font-size: 0.65rem; color: var(--text-dim); margin-bottom: 2px; }
-        .breakdown-value { font-size: 0.95rem; font-weight: 600; color: var(--text-sub); }
-
-        /* ===== A/B 型解释卡片 ===== */
-        .type-card {
-            margin-bottom: 12px;
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            overflow: hidden;
-            transition: all 0.4s ease;
-            max-height: 0;
-            opacity: 0;
-            padding: 0;
-        }
-
-        .type-card.show {
-            max-height: 400px;
-            opacity: 1;
-            padding: 0;
-        }
-
-        .type-card.type-a-card { border-color: rgba(239,68,68,0.2); }
-        .type-card.type-b-card { border-color: rgba(96,165,250,0.2); }
-
-        .type-card-header {
-            padding: 12px 14px;
-            font-size: 0.82rem;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .type-card-header .badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-weight: 800;
-        }
-
-        .type-a-card .type-card-header {
-            background: rgba(239,68,68,0.08);
-            color: var(--danger);
-        }
-
-        .type-a-card .type-card-header .badge {
-            background: rgba(239,68,68,0.15);
-            color: var(--danger);
-        }
-
-        .type-b-card .type-card-header {
-            background: rgba(96,165,250,0.08);
-            color: var(--blue);
-        }
-
-        .type-b-card .type-card-header .badge {
-            background: rgba(96,165,250,0.15);
-            color: var(--blue);
-        }
-
-        .type-card-body {
-            padding: 14px;
-            background: var(--bg-card);
-            font-size: 0.78rem;
-            line-height: 1.7;
-            color: var(--text-sub);
-        }
-
-        .type-card-body .row {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 6px;
-        }
-
-        .type-card-body .row:last-child { margin-bottom: 0; }
-
-        .type-card-body .label {
-            flex-shrink: 0;
-            color: var(--text-dim);
-            min-width: 36px;
-        }
-
-        .type-card-body .label::after {
-            content: ':';
-        }
-
-        .type-card-threshold {
-            margin-top: 10px;
-            padding: 10px 14px;
-            border-radius: 10px;
-            font-size: 0.72rem;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .type-a-card .type-card-threshold {
-            background: rgba(239,68,68,0.06);
-            color: var(--danger);
-        }
-
-        .type-b-card .type-card-threshold {
-            background: rgba(96,165,250,0.06);
-            color: var(--blue);
-        }
-
-        /* ===== 公式折叠 ===== */
-        .formula-toggle {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 10px;
-            margin-bottom: 12px;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.04);
-            cursor: pointer;
-            color: var(--text-dim);
-            font-size: 0.78rem;
-            transition: all 0.2s;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-
-        .formula-toggle:active { background: rgba(255,255,255,0.05); }
-        .formula-toggle .arrow { display: inline-block; transition: transform 0.3s; font-size: 0.7rem; }
-        .formula-toggle.open .arrow { transform: rotate(180deg); }
-
-        .formula-panel {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease, margin 0.3s;
-            margin-bottom: 0;
-        }
-
-        .formula-panel.open { max-height: 300px; margin-bottom: 12px; }
-
-        .formula-inner {
-            padding: 16px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            text-align: center;
-        }
-
-        .formula-frac { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
-        .formula-top { font-size: 0.95rem; color: var(--accent); font-weight: 600; }
-        .formula-line { width: 200px; height: 1.5px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
-        .formula-bot { font-size: 0.75rem; color: var(--text-sub); line-height: 1.8; max-width: 300px; }
-        .formula-bot .a { color: var(--red); font-weight: 600; }
-        .formula-bot .v { color: var(--blue); font-weight: 600; }
-        .formula-bot .n { color: var(--accent); }
-
-        /* ===== 输入组 ===== */
-        .input-group {
-            margin-bottom: 12px;
-            border-radius: var(--radius);
-            overflow: hidden;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            animation: slideUp 0.5s ease both;
-        }
-
-        .input-group:nth-child(1) { animation-delay: 0.05s; }
-        .input-group:nth-child(2) { animation-delay: 0.1s; }
-        .input-group:nth-child(3) { animation-delay: 0.15s; }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(16px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .group-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 14px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-        }
-
-        .group-bar .dot { width: 8px; height: 8px; border-radius: 50%; }
-        .group-bar.co2 { background: rgba(74,222,128,0.08); color: var(--green); }
-        .group-bar.co2 .dot { background: var(--green); }
-        .group-bar.art { background: rgba(248,113,113,0.08); color: var(--red); }
-        .group-bar.art .dot { background: var(--red); }
-        .group-bar.ven { background: rgba(96,165,250,0.08); color: var(--blue); }
-        .group-bar.ven .dot { background: var(--blue); }
-
-        .field {
-            display: flex;
-            align-items: center;
-            padding: 0 14px;
-            border-top: 1px solid rgba(255,255,255,0.03);
-            min-height: 52px;
-            transition: background 0.2s;
-        }
-
-        .field:focus-within { background: rgba(255,255,255,0.02); }
-        .field.error { background: rgba(239,68,68,0.06); }
-        .field.error .field-input { border-color: var(--danger); }
-
-        .field-info { flex-shrink: 0; width: 110px; }
-        .field-name { font-size: 0.78rem; color: var(--text-sub); line-height: 1.3; }
-        .field-unit { font-size: 0.65rem; color: var(--text-dim); }
-
-        .field-input {
-            flex: 1;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 14px;
-            color: var(--text);
-            font-size: 1.1rem;
+        .title-sub {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
             font-weight: 500;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.2s;
-            text-align: right;
-            width: 100%;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+            margin-top: 12px;
         }
 
-        .field-input::placeholder { color: var(--text-dim); opacity: 0.4; font-weight: 400; font-size: 0.9rem; }
-        .field-input:focus { border-color: var(--accent); }
-        .field-input.art-focus:focus { border-color: var(--red); }
-        .field-input.ven-focus:focus { border-color: var(--blue); }
-        .field-input.co2-focus:focus { border-color: var(--green); }
+        /* Divider */
+        .divider-line {
+            width: 48px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            margin: 28px auto;
+            opacity: 0;
+            animation: fadeIn 0.6s ease 0.7s forwards;
+        }
 
-        .field-co2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
-        .field-co2 .field { border-top: none; border-right: 1px solid rgba(255,255,255,0.03); }
-        .field-co2 .field:last-child { border-right: none; }
-        .field-co2 .field-info { width: 70px; }
-        .field-co2 .field-name { font-size: 0.72rem; }
-        .field-co2 .field-input { font-size: 1rem; padding: 10px 12px; }
+        /* Description */
+        .desc-block {
+            text-align: center;
+            margin-bottom: 48px;
+            opacity: 0;
+            transform: translateY(16px);
+            animation: revealUp 0.8s cubic-bezier(0.32, 0.72, 0, 1) 0.8s forwards;
+        }
 
-        /* ===== 底部 ===== */
-        .action-bar {
-            position: sticky;
-            bottom: 0;
-            z-index: 100;
-            padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-            background: linear-gradient(transparent, var(--bg) 30%);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            display: flex;
-            gap: 10px;
-            max-width: 420px;
+        .desc-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            max-width: 320px;
             margin: 0 auto;
         }
 
-        .btn {
-            flex: 1;
-            padding: 14px;
-            border-radius: 12px;
-            font-size: 0.95rem;
+        .desc-highlight {
+            color: var(--accent);
             font-weight: 600;
-            font-family: inherit;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-            -webkit-user-select: none;
-            user-select: none;
         }
 
-        .btn:active { transform: scale(0.97); }
-        .btn-calc { background: linear-gradient(135deg, var(--accent), #2dd4bf); color: #0c1220; box-shadow: 0 4px 16px rgba(62, 198, 224, 0.3); }
-        .btn-reset { flex: 0.5; background: rgba(255,255,255,0.05); color: var(--text-sub); border: 1px solid var(--border); }
+        /* Feature Tags */
+        .feature-tags {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 48px;
+            opacity: 0;
+            animation: fadeIn 0.7s ease 1.0s forwards;
+        }
 
-        .spacer { height: 80px; }
+        .tag {
+            padding: 5px 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 100px;
+            font-size: 0.68rem;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            letter-spacing: 0.02em;
+        }
 
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
+        /* CTA Button */
+        .cta-wrapper {
+            width: 100%;
+            max-width: 280px;
+            opacity: 0;
+            transform: translateY(16px);
+            animation: revealUp 0.8s cubic-bezier(0.32, 0.72, 0, 1) 1.2s forwards;
+        }
 
+        .cta-btn {
+            position: relative;
+            width: 100%;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+            border: none;
+            border-radius: var(--radius-lg);
+            color: #fff;
+            font-family: var(--font-display);
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 24px rgba(14, 165, 233, 0.25), inset 0 1px 0 rgba(255,255,255,0.12);
+            transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+            -webkit-user-select: none;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .cta-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent, rgba(255,255,255,0.08), transparent);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .cta-btn:hover {
+            box-shadow: 0 8px 32px rgba(14, 165, 233, 0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+        }
+
+        .cta-btn:hover::before { opacity: 1; }
+        .cta-btn:active { transform: scale(0.97); }
+
+        .cta-btn .arrow-circle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+
+        .cta-btn:hover .arrow-circle {
+            transform: translateX(2px);
+        }
+
+        /* Footer */
+        .splash-footer {
+            position: absolute;
+            bottom: 24px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 0.6s ease 1.5s forwards;
+        }
+
+        .splash-footer .version {
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+            color: var(--text-tertiary);
+            letter-spacing: 0.1em;
+        }
+
+        /* Transition overlay for page change */
+        .page-transition {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .page-transition.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes revealUp {
+            from { opacity: 0; transform: translateY(20px); filter: blur(3px); }
+            to { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Responsive */
         @media (min-width: 500px) {
-            .app { padding: 0 24px; }
-            .result-number { font-size: 3.2rem; }
+            .title-main { font-size: 3.2rem; }
+            .splash { padding: 60px 40px; }
         }
     </style>
 </head>
 <body>
-    <div class="app">
-        <div class="topbar">
-            <div class="topbar-title">Gap Ratio</div>
+    <div class="bg-layer"></div>
+    <div class="grid-lines"></div>
+    <div class="noise-overlay"></div>
+    <div class="page-transition" id="transitionOverlay"></div>
+
+    <div class="splash">
+        <!-- Hospital Badge -->
+        <div class="hospital-badge">
+            <span class="cross">&#x1F3E5;</span>
+            <span>重症医学科</span>
         </div>
 
-        <!-- 结果卡片 -->
-        <div class="result-sticky">
-            <div class="result-card" id="resultCard">
-                <div class="result-label">Gap Ratio</div>
-                <div class="result-number" id="resultNum">--</div>
-                <div class="result-tag" id="resultTag">等待输入</div>
-                <div class="result-breakdown">
-                    <div class="breakdown-item">
-                        <div class="breakdown-label">分子</div>
-                        <div class="breakdown-value" id="numVal">--</div>
-                    </div>
-                    <div class="breakdown-item">
-                        <div class="breakdown-label">分母</div>
-                        <div class="breakdown-value" id="denVal">--</div>
-                    </div>
-                </div>
-            </div>
+        <!-- Main Title -->
+        <div class="title-block">
+            <h1 class="title-main">云阜 SICU</h1>
+            <p class="title-sub">Surgical Intensive Care Unit</p>
         </div>
 
-        <!-- A型解释卡片 -->
-        <div class="type-card type-a-card" id="typeACard">
-            <div class="type-card-header">
-                <span class="badge">A</span>A型乳酸升高（低灌注/缺氧型）
-            </div>
-            <div class="type-card-body">
-                <div class="row">
-                    <span class="label">根源</span>
-                    <span>全身组织灌注不足、供氧不够，细胞无氧发酵大量产乳酸</span>
-                </div>
-                <div class="row">
-                    <span class="label">场景</span>
-                    <span>各类休克、心衰、严重低氧、重度贫血</span>
-                </div>
-            </div>
-            <div class="type-card-threshold">
-                Gap Ratio &ge; 1.4 &mdash; 无氧代谢占比高，支持低灌注缺氧
-            </div>
+        <!-- Divider -->
+        <div class="divider-line"></div>
+
+        <!-- Description -->
+        <div class="desc-block">
+            <p class="desc-text">
+                基于 Gap Ratio 公式<br>
+                鉴别 <span class="desc-highlight">A型 / B型</span> 乳酸升高<br>
+                辅助临床快速判断组织灌注状态
+            </p>
         </div>
 
-        <!-- B型解释卡片 -->
-        <div class="type-card type-b-card" id="typeBCard">
-            <div class="type-card-header">
-                <span class="badge">B</span>B型乳酸升高（无全身低灌注）
-            </div>
-            <div class="type-card-body">
-                <div class="row">
-                    <span class="label">根源</span>
-                    <span>非灌注因素：代谢、药物、线粒体、肝脏清除下降导致乳酸蓄积</span>
-                </div>
-                <div class="row">
-                    <span class="label">场景</span>
-                    <span>二甲双胍、肾上腺素、肝病、肿瘤、剧烈运动、癫痫</span>
-                </div>
-            </div>
-            <div class="type-card-threshold">
-                Gap Ratio &lt; 1.4 &mdash; 无明显全身无氧代谢增多，找非灌注类病因
-            </div>
+        <!-- Feature Tags -->
+        <div class="feature-tags">
+            <span class="tag">Gap Ratio</span>
+            <span class="tag">A型 / B型鉴别</span>
+            <span class="tag">离线可用</span>
         </div>
 
-        <!-- 公式折叠 -->
-        <div class="formula-toggle" id="formulaToggle" onclick="toggleFormula()">
-            <span>查看公式</span>
-            <span class="arrow">&#9660;</span>
-        </div>
-        <div class="formula-panel" id="formulaPanel">
-            <div class="formula-inner">
-                <div class="formula-frac">
-                    <div class="formula-top">PvCO<sub>2</sub> &minus; PaCO<sub>2</sub></div>
-                    <div class="formula-line"></div>
-                    <div class="formula-bot">
-                        [<span class="a">Hb<sub>a</sub> &times; SaO<sub>2</sub> &times; <span class="n">1.34</span> + PaO<sub>2</sub> &times; <span class="n">0.0031</span></span>]
-                        &minus;
-                        [<span class="v">Hb<sub>v</sub> &times; SvO<sub>2</sub> &times; <span class="n">1.34</span> + PvO<sub>2</sub> &times; <span class="n">0.0031</span></span>]
-                    </div>
-                </div>
-            </div>
+        <!-- CTA -->
+        <div class="cta-wrapper">
+            <button class="cta-btn" onclick="enterApp()">
+                <span>进入计算</span>
+                <span class="arrow-circle">&#x2192;</span>
+            </button>
         </div>
 
-        <!-- CO2 分压组 -->
-        <div class="input-group">
-            <div class="group-bar co2">
-                <span class="dot"></span>CO<sub>2</sub> 分压
-            </div>
-            <div class="field-co2">
-                <div class="field" id="f-pvco2">
-                    <div class="field-info">
-                        <div class="field-name">PvCO<sub>2</sub></div>
-                        <div class="field-unit">混合静脉 mmHg</div>
-                    </div>
-                    <input type="number" class="field-input co2-focus" id="pvco2" placeholder="46" inputmode="decimal">
-                </div>
-                <div class="field" id="f-paco2">
-                    <div class="field-info">
-                        <div class="field-name">PaCO<sub>2</sub></div>
-                        <div class="field-unit">动脉 mmHg</div>
-                    </div>
-                    <input type="number" class="field-input co2-focus" id="paco2" placeholder="40" inputmode="decimal">
-                </div>
-            </div>
+        <!-- Footer -->
+        <div class="splash-footer">
+            <span class="version">v1.0 &middot; 云阜医院 SICU</span>
         </div>
-
-        <!-- 动脉血参数 -->
-        <div class="input-group">
-            <div class="group-bar art">
-                <span class="dot"></span>动脉血参数
-            </div>
-            <div class="field" id="f-arterial-hb">
-                <div class="field-info">
-                    <div class="field-name">Hb</div>
-                    <div class="field-unit">血色素 g/dL</div>
-                </div>
-                <input type="number" class="field-input art-focus" id="arterial-hb" placeholder="14" inputmode="decimal">
-            </div>
-            <div class="field" id="f-arterial-sat">
-                <div class="field-info">
-                    <div class="field-name">SaO<sub>2</sub></div>
-                    <div class="field-unit">饱和度 %</div>
-                </div>
-                <input type="number" class="field-input art-focus" id="arterial-sat" placeholder="95" inputmode="decimal" min="0" max="100">
-            </div>
-            <div class="field" id="f-arterial-po2">
-                <div class="field-info">
-                    <div class="field-name">PaO<sub>2</sub></div>
-                    <div class="field-unit">氧分压 mmHg</div>
-                </div>
-                <input type="number" class="field-input art-focus" id="arterial-po2" placeholder="90" inputmode="decimal">
-            </div>
-        </div>
-
-        <!-- 静脉血参数 -->
-        <div class="input-group">
-            <div class="group-bar ven">
-                <span class="dot"></span>静脉血参数
-            </div>
-            <div class="field" id="f-venous-hb">
-                <div class="field-info">
-                    <div class="field-name">Hb</div>
-                    <div class="field-unit">血色素 g/dL</div>
-                </div>
-                <input type="number" class="field-input ven-focus" id="venous-hb" placeholder="14" inputmode="decimal">
-            </div>
-            <div class="field" id="f-venous-sat">
-                <div class="field-info">
-                    <div class="field-name">SvO<sub>2</sub></div>
-                    <div class="field-unit">饱和度 %</div>
-                </div>
-                <input type="number" class="field-input ven-focus" id="venous-sat" placeholder="70" inputmode="decimal" min="0" max="100">
-            </div>
-            <div class="field" id="f-venous-po2">
-                <div class="field-info">
-                    <div class="field-name">PvO<sub>2</sub></div>
-                    <div class="field-unit">氧分压 mmHg</div>
-                </div>
-                <input type="number" class="field-input ven-focus" id="venous-po2" placeholder="40" inputmode="decimal">
-            </div>
-        </div>
-
-        <div class="spacer"></div>
-    </div>
-
-    <div class="action-bar">
-        <button class="btn btn-calc" onclick="calculate()">计算</button>
-        <button class="btn btn-reset" onclick="clearAll()">重置</button>
     </div>
 
     <script>
-        // 注册 Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('SW registered'))
-                    .catch(err => console.log('SW failed:', err));
-            });
-        }
-
-        // 公式折叠
-        function toggleFormula() {
-            const toggle = document.getElementById('formulaToggle');
-            const panel = document.getElementById('formulaPanel');
-            toggle.classList.toggle('open');
-            panel.classList.toggle('open');
-            toggle.querySelector('span').textContent =
-                toggle.classList.contains('open') ? '收起公式' : '查看公式';
-        }
-
-        // 自动计算
-        const inputIds = ['pvco2', 'paco2', 'arterial-hb', 'arterial-sat', 'arterial-po2', 'venous-hb', 'venous-sat', 'venous-po2'];
-        let timer;
-        inputIds.forEach(id => {
-            document.getElementById(id).addEventListener('input', () => {
-                clearTimeout(timer);
-                const f = document.getElementById('f-' + id);
-                if (f) f.classList.remove('error');
-                timer = setTimeout(() => {
-                    if (allFilled()) calculate();
-                }, 400);
-            });
-        });
-
-        function allFilled() {
-            return inputIds.every(id => {
-                const v = document.getElementById(id).value.trim();
-                return v !== '' && !isNaN(parseFloat(v));
-            });
-        }
-
-        function getVal(id) {
-            const el = document.getElementById(id);
-            const v = el.value.trim();
-            if (v === '' || isNaN(parseFloat(v))) return null;
-            return parseFloat(v);
-        }
-
-        function calculate() {
-            document.querySelectorAll('.field').forEach(f => f.classList.remove('error'));
-
-            const pvco2 = getVal('pvco2');
-            const paco2 = getVal('paco2');
-            const aHb = getVal('arterial-hb');
-            const aSat = getVal('arterial-sat');
-            const aPO2 = getVal('arterial-po2');
-            const vHb = getVal('venous-hb');
-            const vSat = getVal('venous-sat');
-            const vPO2 = getVal('venous-po2');
-
-            let hasError = false;
-            const checks = [
-                ['pvco2', pvco2], ['paco2', paco2],
-                ['arterial-hb', aHb], ['arterial-sat', aSat], ['arterial-po2', aPO2],
-                ['venous-hb', vHb], ['venous-sat', vSat], ['venous-po2', vPO2]
-            ];
-            checks.forEach(([id, val]) => {
-                if (val === null) {
-                    document.getElementById('f-' + id).classList.add('error');
-                    hasError = true;
-                }
-            });
-            if (hasError) { setResult(null, null, '请填写所有参数', 'error'); return; }
-
-            if (aSat < 0 || aSat > 100) { document.getElementById('f-arterial-sat').classList.add('error'); setResult(null, null, '饱和度须 0-100', 'error'); return; }
-            if (vSat < 0 || vSat > 100) { document.getElementById('f-venous-sat').classList.add('error'); setResult(null, null, '饱和度须 0-100', 'error'); return; }
-
-            const aSatD = aSat / 100;
-            const vSatD = vSat / 100;
-            const caO2 = (aHb * aSatD * 1.34) + (aPO2 * 0.0031);
-            const cvO2 = (vHb * vSatD * 1.34) + (vPO2 * 0.0031);
-
-            const numerator = pvco2 - paco2;
-            const denominator = caO2 - cvO2;
-
-            if (Math.abs(denominator) < 0.0001) { setResult(numerator, denominator, '分母为零', 'error'); return; }
-
-            const result = numerator / denominator;
-
-            // A型/B型判断：阈值 1.4
-            let tag, type;
-            if (result >= 1.4) {
-                tag = 'A型 - 低灌注/缺氧';
-                type = 'type-a';
-            } else {
-                tag = 'B型 - 非低灌注因素';
-                type = 'type-b';
-            }
-
-            setResult(numerator, denominator, tag, type, result);
-        }
-
-        function setResult(num, den, tagText, tagType, result) {
-            const numEl = document.getElementById('numVal');
-            const denEl = document.getElementById('denVal');
-            const tagEl = document.getElementById('resultTag');
-            const numResult = document.getElementById('resultNum');
-            const card = document.getElementById('resultCard');
-            const typeACard = document.getElementById('typeACard');
-            const typeBCard = document.getElementById('typeBCard');
-
-            numEl.textContent = num !== null ? num.toFixed(3) : '--';
-            denEl.textContent = den !== null ? den.toFixed(3) : '--';
-
-            tagEl.textContent = tagText;
-            tagEl.className = 'result-tag';
-            if (tagType) tagEl.classList.add(tagType);
-
-            // 显示/隐藏 A/B 型卡片
-            typeACard.classList.remove('show');
-            typeBCard.classList.remove('show');
-
-            if (result !== undefined && result !== null) {
-                numResult.textContent = result.toFixed(4);
-                card.classList.remove('pulse');
-                void card.offsetWidth;
-                card.classList.add('pulse');
-
-                // 根据结果展示对应类型卡片
-                setTimeout(() => {
-                    if (result >= 1.4) {
-                        typeACard.classList.add('show');
-                    } else {
-                        typeBCard.classList.add('show');
-                    }
-                }, 200);
-            } else {
-                numResult.textContent = '--';
-            }
-        }
-
-        function clearAll() {
-            inputIds.forEach(id => {
-                document.getElementById(id).value = '';
-                document.getElementById('f-' + id).classList.remove('error');
-            });
-            setResult(null, null, '等待输入', '');
-
-            document.getElementById('typeACard').classList.remove('show');
-            document.getElementById('typeBCard').classList.remove('show');
-
-            document.querySelectorAll('.field-input').forEach((el, i) => {
-                el.style.transition = 'opacity 0.15s';
-                el.style.opacity = '0.3';
-                setTimeout(() => { el.style.opacity = '1'; }, 100 + i * 30);
-            });
+        function enterApp() {
+            const overlay = document.getElementById('transitionOverlay');
+            overlay.classList.add('active');
+            setTimeout(() => {
+                window.location.href = './app.html';
+            }, 400);
         }
     </script>
 </body>
