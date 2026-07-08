@@ -6,11 +6,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#3ec6e0">
-    <meta name="description" content="肺内分流比值医学公式计算器">
+    <meta name="description" content="Gap Ratio 计算器 - A型/B型乳酸升高鉴别">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="icon" href="icons/icon-192.png">
-    <title>肺内分流计算器</title>
+    <title>Gap Ratio</title>
     <style>
         :root {
             --bg: #0c1220;
@@ -27,11 +27,11 @@
             --green: #4ade80;
             --yellow: #fbbf24;
             --danger: #ef4444;
+            --orange: #fb923c;
             --radius: 16px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
         html { font-size: 16px; }
 
         body {
@@ -85,6 +85,7 @@
             color: var(--text);
         }
 
+        /* ===== 结果区域 ===== */
         .result-sticky {
             position: sticky;
             top: 52px;
@@ -132,18 +133,18 @@
         .result-tag {
             display: inline-block;
             margin-top: 8px;
-            padding: 4px 12px;
+            padding: 5px 14px;
             border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
+            font-size: 0.78rem;
+            font-weight: 600;
             background: rgba(255,255,255,0.05);
             color: var(--text-dim);
             transition: all 0.3s;
         }
 
-        .result-tag.normal { background: rgba(74,222,128,0.12); color: var(--green); }
+        .result-tag.type-a { background: rgba(239,68,68,0.15); color: var(--danger); }
+        .result-tag.type-b { background: rgba(96,165,250,0.15); color: var(--blue); }
         .result-tag.warning { background: rgba(251,191,36,0.12); color: var(--yellow); }
-        .result-tag.danger { background: rgba(239,68,68,0.12); color: var(--danger); }
         .result-tag.error { background: rgba(239,68,68,0.12); color: var(--danger); }
 
         .result-breakdown {
@@ -159,6 +160,114 @@
         .breakdown-label { font-size: 0.65rem; color: var(--text-dim); margin-bottom: 2px; }
         .breakdown-value { font-size: 0.95rem; font-weight: 600; color: var(--text-sub); }
 
+        /* ===== A/B 型解释卡片 ===== */
+        .type-card {
+            margin-bottom: 12px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: all 0.4s ease;
+            max-height: 0;
+            opacity: 0;
+            padding: 0;
+        }
+
+        .type-card.show {
+            max-height: 400px;
+            opacity: 1;
+            padding: 0;
+        }
+
+        .type-card.type-a-card { border-color: rgba(239,68,68,0.2); }
+        .type-card.type-b-card { border-color: rgba(96,165,250,0.2); }
+
+        .type-card-header {
+            padding: 12px 14px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .type-card-header .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 800;
+        }
+
+        .type-a-card .type-card-header {
+            background: rgba(239,68,68,0.08);
+            color: var(--danger);
+        }
+
+        .type-a-card .type-card-header .badge {
+            background: rgba(239,68,68,0.15);
+            color: var(--danger);
+        }
+
+        .type-b-card .type-card-header {
+            background: rgba(96,165,250,0.08);
+            color: var(--blue);
+        }
+
+        .type-b-card .type-card-header .badge {
+            background: rgba(96,165,250,0.15);
+            color: var(--blue);
+        }
+
+        .type-card-body {
+            padding: 14px;
+            background: var(--bg-card);
+            font-size: 0.78rem;
+            line-height: 1.7;
+            color: var(--text-sub);
+        }
+
+        .type-card-body .row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .type-card-body .row:last-child { margin-bottom: 0; }
+
+        .type-card-body .label {
+            flex-shrink: 0;
+            color: var(--text-dim);
+            min-width: 36px;
+        }
+
+        .type-card-body .label::after {
+            content: ':';
+        }
+
+        .type-card-threshold {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .type-a-card .type-card-threshold {
+            background: rgba(239,68,68,0.06);
+            color: var(--danger);
+        }
+
+        .type-b-card .type-card-threshold {
+            background: rgba(96,165,250,0.06);
+            color: var(--blue);
+        }
+
+        /* ===== 公式折叠 ===== */
         .formula-toggle {
             display: flex;
             align-items: center;
@@ -206,6 +315,7 @@
         .formula-bot .v { color: var(--blue); font-weight: 600; }
         .formula-bot .n { color: var(--accent); }
 
+        /* ===== 输入组 ===== */
         .input-group {
             margin-bottom: 12px;
             border-radius: var(--radius);
@@ -288,6 +398,7 @@
         .field-co2 .field-name { font-size: 0.72rem; }
         .field-co2 .field-input { font-size: 1rem; padding: 10px 12px; }
 
+        /* ===== 底部 ===== */
         .action-bar {
             position: sticky;
             bottom: 0;
@@ -335,12 +446,13 @@
 <body>
     <div class="app">
         <div class="topbar">
-            <div class="topbar-title">肺内分流计算</div>
+            <div class="topbar-title">Gap Ratio</div>
         </div>
 
+        <!-- 结果卡片 -->
         <div class="result-sticky">
             <div class="result-card" id="resultCard">
-                <div class="result-label">分流比值</div>
+                <div class="result-label">Gap Ratio</div>
                 <div class="result-number" id="resultNum">--</div>
                 <div class="result-tag" id="resultTag">等待输入</div>
                 <div class="result-breakdown">
@@ -356,6 +468,47 @@
             </div>
         </div>
 
+        <!-- A型解释卡片 -->
+        <div class="type-card type-a-card" id="typeACard">
+            <div class="type-card-header">
+                <span class="badge">A</span>A型乳酸升高（低灌注/缺氧型）
+            </div>
+            <div class="type-card-body">
+                <div class="row">
+                    <span class="label">根源</span>
+                    <span>全身组织灌注不足、供氧不够，细胞无氧发酵大量产乳酸</span>
+                </div>
+                <div class="row">
+                    <span class="label">场景</span>
+                    <span>各类休克、心衰、严重低氧、重度贫血</span>
+                </div>
+            </div>
+            <div class="type-card-threshold">
+                Gap Ratio &ge; 1.4 &mdash; 无氧代谢占比高，支持低灌注缺氧
+            </div>
+        </div>
+
+        <!-- B型解释卡片 -->
+        <div class="type-card type-b-card" id="typeBCard">
+            <div class="type-card-header">
+                <span class="badge">B</span>B型乳酸升高（无全身低灌注）
+            </div>
+            <div class="type-card-body">
+                <div class="row">
+                    <span class="label">根源</span>
+                    <span>非灌注因素：代谢、药物、线粒体、肝脏清除下降导致乳酸蓄积</span>
+                </div>
+                <div class="row">
+                    <span class="label">场景</span>
+                    <span>二甲双胍、肾上腺素、肝病、肿瘤、剧烈运动、癫痫</span>
+                </div>
+            </div>
+            <div class="type-card-threshold">
+                Gap Ratio &lt; 1.4 &mdash; 无明显全身无氧代谢增多，找非灌注类病因
+            </div>
+        </div>
+
+        <!-- 公式折叠 -->
         <div class="formula-toggle" id="formulaToggle" onclick="toggleFormula()">
             <span>查看公式</span>
             <span class="arrow">&#9660;</span>
@@ -374,6 +527,7 @@
             </div>
         </div>
 
+        <!-- CO2 分压组 -->
         <div class="input-group">
             <div class="group-bar co2">
                 <span class="dot"></span>CO<sub>2</sub> 分压
@@ -396,6 +550,7 @@
             </div>
         </div>
 
+        <!-- 动脉血参数 -->
         <div class="input-group">
             <div class="group-bar art">
                 <span class="dot"></span>动脉血参数
@@ -423,6 +578,7 @@
             </div>
         </div>
 
+        <!-- 静脉血参数 -->
         <div class="input-group">
             <div class="group-bar ven">
                 <span class="dot"></span>静脉血参数
@@ -459,12 +615,12 @@
     </div>
 
     <script>
-        // 注册 Service Worker（PWA 离线支持）
+        // 注册 Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('SW 已注册'))
-                    .catch(err => console.log('SW 注册失败:', err));
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW failed:', err));
             });
         }
 
@@ -478,7 +634,7 @@
                 toggle.classList.contains('open') ? '收起公式' : '查看公式';
         }
 
-        // 自动计算 - debounce
+        // 自动计算
         const inputIds = ['pvco2', 'paco2', 'arterial-hb', 'arterial-sat', 'arterial-po2', 'venous-hb', 'venous-sat', 'venous-po2'];
         let timer;
         inputIds.forEach(id => {
@@ -546,11 +702,16 @@
             if (Math.abs(denominator) < 0.0001) { setResult(numerator, denominator, '分母为零', 'error'); return; }
 
             const result = numerator / denominator;
+
+            // A型/B型判断：阈值 1.4
             let tag, type;
-            if (result < 0) { tag = '异常 (负值)'; type = 'warning'; }
-            else if (result < 0.05) { tag = '正常 (< 5%)'; type = 'normal'; }
-            else if (result < 0.15) { tag = '轻度升高 (5-15%)'; type = 'warning'; }
-            else { tag = '明显升高 (> 15%)'; type = 'danger'; }
+            if (result >= 1.4) {
+                tag = 'A型 - 低灌注/缺氧';
+                type = 'type-a';
+            } else {
+                tag = 'B型 - 非低灌注因素';
+                type = 'type-b';
+            }
 
             setResult(numerator, denominator, tag, type, result);
         }
@@ -561,6 +722,8 @@
             const tagEl = document.getElementById('resultTag');
             const numResult = document.getElementById('resultNum');
             const card = document.getElementById('resultCard');
+            const typeACard = document.getElementById('typeACard');
+            const typeBCard = document.getElementById('typeBCard');
 
             numEl.textContent = num !== null ? num.toFixed(3) : '--';
             denEl.textContent = den !== null ? den.toFixed(3) : '--';
@@ -569,11 +732,24 @@
             tagEl.className = 'result-tag';
             if (tagType) tagEl.classList.add(tagType);
 
+            // 显示/隐藏 A/B 型卡片
+            typeACard.classList.remove('show');
+            typeBCard.classList.remove('show');
+
             if (result !== undefined && result !== null) {
                 numResult.textContent = result.toFixed(4);
                 card.classList.remove('pulse');
                 void card.offsetWidth;
                 card.classList.add('pulse');
+
+                // 根据结果展示对应类型卡片
+                setTimeout(() => {
+                    if (result >= 1.4) {
+                        typeACard.classList.add('show');
+                    } else {
+                        typeBCard.classList.add('show');
+                    }
+                }, 200);
             } else {
                 numResult.textContent = '--';
             }
@@ -585,6 +761,9 @@
                 document.getElementById('f-' + id).classList.remove('error');
             });
             setResult(null, null, '等待输入', '');
+
+            document.getElementById('typeACard').classList.remove('show');
+            document.getElementById('typeBCard').classList.remove('show');
 
             document.querySelectorAll('.field-input').forEach((el, i) => {
                 el.style.transition = 'opacity 0.15s';
